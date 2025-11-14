@@ -4,7 +4,7 @@ from starlette.requests import Request
 from datetime import datetime
 from app.utility.client import clientInit
 from app.router.authentication import getUser, refresh_access_token
-from app.recommendation.helper import generate_random_feature
+from app.recommendation.songFeatures import generate_random_feature
 from app.config import settings 
 
 import pandas as pd

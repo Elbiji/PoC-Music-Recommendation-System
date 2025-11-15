@@ -12,7 +12,7 @@ import requests
 
 router = APIRouter()
 
-def save_to_db(data, user):
+async def save_to_db(data, user):
     song_names = []
     artist_names = []
     played_at_list = []
@@ -90,7 +90,7 @@ def save_to_db(data, user):
     client = clientInit()
     db = client.spotify
 
-    db.track_history.insert_many(songs_df.to_dict('records')) 
+    await db.track_history.insert_many(songs_df.to_dict('records')) 
 
 @router.get('/callback')
 async def callback(request: Request, code: str | None = None, error: str | None = None):

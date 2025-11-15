@@ -16,6 +16,7 @@ async def get_recommendation(user_id: str, request: Request):
     # Client initialization
     client = clientInit()
     db = client.spotify
+    collection = db['track_history']
 
     # Get user data
     access_token = request.session.get('access_token')
@@ -39,3 +40,10 @@ async def get_recommendation(user_id: str, request: Request):
             content={"message": "Forbidden access. Token ID does not match"}
         )
 
+    query_filter = {"user_id": user_id}
+
+    user_track_history = await collection.find_one(query_filter)
+    user_track_history.pop('_id', None) 
+
+    print(user_track_history)
+    return JSONResponse(status_code=200, content=user_track_history)

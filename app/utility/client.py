@@ -1,4 +1,5 @@
 from pymongo.mongo_client import MongoClient
+from pymongo import AsyncMongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 
@@ -9,5 +10,5 @@ load_dotenv()
 DATABASE_URI = os.getenv('DATABASE_URI')
 
 def clientInit():
-    client = MongoClient(DATABASE_URI, server_api=ServerApi('1'))
+    client = AsyncMongoClient(DATABASE_URI, server_api=ServerApi('1'))
     return client

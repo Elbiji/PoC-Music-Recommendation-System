@@ -148,7 +148,7 @@ async def recently_played(request: Request):
 
     recently_played_tracks = r.json()
 
-    save_to_db(recently_played_tracks, getUser(request.session.get('access_token')))
+    await save_to_db(recently_played_tracks, getUser(request.session.get('access_token')))
     return recently_played_tracks
     
     

@@ -1,4 +1,4 @@
-from fastapi import status, APIRouter
+from fastapi import APIRouter
 from fastapi.responses import RedirectResponse, JSONResponse
 from starlette.requests import Request
 from datetime import datetime
@@ -92,33 +92,6 @@ async def save_to_db(data, user):
 
     await db.track_history.insert_many(songs_df.to_dict('records')) 
 
-@router.get('/callback')
-async def callback(request: Request, code: str | None = None, error: str | None = None):
-    if error:
-        return JSONResponse({"error": error}, status_code=status.HTTP_400_BAD_REQUEST)
-    
-    if code:
-        req_body = {
-            'code': code,
-            'grant_type': 'authorization_code',
-            'redirect_uri': settings.REDIRECT_URI,
-            'client_id': settings.CLIENT_ID,
-            'client_secret': settings.CLIENT_SECRET
-        }
-
-        response = requests.post(settings.TOKEN_URL, data=req_body)
-
-        if response.status_code != 200:
-            return JSONResponse({"error": "Token exchange failed"}, status_code=response.status_code)
-        
-        token_info = response.json()
-
-        request.session['access_token'] = token_info.get('access_token')
-        request.session['refresh_token'] = token_info.get('refresh_token')
-        request.session['expires_at'] = datetime.now().timestamp() + token_info.get('expires_in')
-
-        return RedirectResponse(url="/recently-played")
-
 @router.get('/recently-played')
 async def recently_played(request: Request):
     access_token = request.session.get('access_token')
@@ -149,6 +122,6 @@ async def recently_played(request: Request):
     recently_played_tracks = r.json()
 
     await save_to_db(recently_played_tracks, getUser(request.session.get('access_token')))
-    return recently_played_tracks
+    return JSONResponse(recently_played_tracks)
     
     

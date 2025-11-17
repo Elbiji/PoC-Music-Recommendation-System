@@ -16,105 +16,21 @@ async def get_recommendation(user_id: str, request: Request):
     # Client initialization
     client = clientInit()
     db = client.spotify
-    collection = db['track_history']
-
-    # Get user data
-    access_token = request.session.get('access_token')
-    if not access_token:
-        return JSONResponse(
-            status_code=401,
-            content={"message": "Authentication required. Access token missing."}
-        )
-    
-    user_data = getUser(access_token)
-
-    if user_data is None:
-        return JSONResponse(
-            status_code=403,
-            content={"message": "User validation failed, Check token validity or network,"}
-        )
-    
-    if user_data.get('id') != user_id:
-        return JSONResponse(
-            status_code=403,
-            content={"message": "Forbidden access. Token ID does not match"}
-        )
+    collection = db['users']
 
     query_filter = {"user_id": user_id}
-    user_track_history_cursor = collection.find(query_filter).sort('createdAt', -1).limit(20) 
-    user_track_history = await user_track_history_cursor.to_list()
 
-    for track in user_track_history:
-        track.pop('_id', None)
+    # Get user's profile vector
+    document = await collection.find_one(query_filter)
 
-    await user_preference(user_track_history)
+    songs = await recommendation_processor(document['profile_vector'])
+    songs = songs.to_dict('records')
 
-    return JSONResponse(status_code=200, content=user_track_history)
-
-@router.get("/calculate-preference/{user_id}")
-async def calculate_preference(user_id: str, request: Request):
-    # Client initialization
-    client = clientInit()
-    db = client.spotify
-    collection = db['track_history']
-
-    # Get user data
-    access_token = request.session.get('access_token')
-    if not access_token:
-        return JSONResponse(
-            status_code=401,
-            content={"message": "Authentication required. Access token missing."}
-        )
-    
-    user_data = getUser(access_token)
-
-    if user_data is None:
-        return JSONResponse(
-            status_code=403,
-            content={"message": "User validation failed, Check token validity or network,"}
-        )
-    
-    if user_data.get('id') != user_id:
-        return JSONResponse(
-            status_code=403,
-            content={"message": "Forbidden access. Token ID does not match"}
-        )
-
-    # Query filter
-    query_filter = {"user_id": user_id}
-
-    # Get track histories
-    user_track_history_cursor = collection.find(query_filter).sort('createdAt', -1).limit(20) 
-    user_track_history = await user_track_history_cursor.to_list()
-
-    # Calculate profile vector
-    user_preference_profile = await user_preference(user_track_history) 
-    
-    # Define the update action (e.g., set new fields or change existing ones)
-    update_action = {"$set": {
-        "profile_vector": user_preference_profile
+    return JSONResponse(
+        content={
+            "user_id": user_id,
+            "recommendations": songs
         },
-        "$setOnInsert": {
-            "user_id": user_id, 
-            "created_at": datetime.now() 
-        }
-    }
-    
-    # Execute the update with upsert=True
-    result = await db.users.update_one(
-        query_filter, 
-        update_action, 
-        upsert=True  
+        status_code=200
     )
 
-    if not result.acknowledged:
-        return JSONResponse(
-            status_code=500,
-            content={"message": "Mongodb internal server error"}
-        )
-    else:
-        return JSONResponse(
-            status_code=200,
-            content={"message": f"updated rows: {result.modified_count}"}
-        )
-    

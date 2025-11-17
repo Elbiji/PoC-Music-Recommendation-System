@@ -1,11 +1,8 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
-from datetime import datetime
 from app.utility.client import clientInit
-from app.router.authentication import getUser, refresh_access_token
-from app.config import settings 
-from app.recommendation.recommendationEngine import recommendation_processor, user_preference
+from app.recommendation.recommendationEngine import recommendation_processor
 
 import requests
 
@@ -18,6 +15,14 @@ async def get_recommendation(user_id: str, request: Request):
     db = client.spotify
     collection = db['users']
 
+    access_token = request.headers.get('Authorization')
+    if not access_token:
+        return JSONResponse(
+            status_code=403,
+            content={"message": "User validation failed, Check token validity or network,"}
+        )
+
+    # Filter query to mongodb
     query_filter = {"user_id": user_id}
 
     # Get user's profile vector

@@ -79,7 +79,7 @@ async def login():
     return RedirectResponse(auth_url)
 
 @router.get('/callback')
-async def callback(request: Request, code: str | None = None, error: str | None = None):
+async def callback(code: str | None = None, error: str | None = None):
     if error:
         return JSONResponse({"error": error}, status_code=status.HTTP_400_BAD_REQUEST)
     
@@ -99,10 +99,19 @@ async def callback(request: Request, code: str | None = None, error: str | None 
         
         token_info = response.json()
 
-        request.session['access_token'] = token_info.get('access_token')
-        request.session['refresh_token'] = token_info.get('refresh_token')
-        request.session['expires_at'] = datetime.now().timestamp() + token_info.get('expires_in')
+        # request.session['access_token'] = token_info.get('access_token')
+        # request.session['refresh_token'] = token_info.get('refresh_token')
+        # request.session['expires_at'] = datetime.now().timestamp() + token_info.get('expires_in')
 
         # print(request.session['access_token'])
 
-        return RedirectResponse(url="/recently-played")
+        return JSONResponse(
+            content={
+                "message": "Token exchange succesfull",
+                "access_token": token_info.get('access_token'),
+                "refresh_token": token_info.get('refresh_token'),
+                "expires_in": token_info.get('expires_in'),
+                "token_type": token_info.get('token_type'),
+            },
+            status_code=status.HTTP_200_OK
+        )

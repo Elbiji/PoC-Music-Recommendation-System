@@ -4,7 +4,7 @@ from starlette.requests import Request
 from datetime import datetime
 from app.utility.client import clientInit
 from app.router.authentication import getUser, refresh_access_token
-from app.recommendation.songFeatures import generate_random_feature
+from app.model.songFeatures import generate_random_feature
 from app.config import settings 
 
 import pandas as pd
@@ -94,21 +94,7 @@ async def save_to_db(data, user):
 
 @router.get('/recently-played')
 async def recently_played(request: Request):
-    access_token = request.session.get('access_token')
-    expires_at = request.session.get('expires_at')
-    
-    if not access_token:
-        return RedirectResponse(url="/login")
-    
-    if datetime.now().timestamp() > expires_at:
-        response = refresh_access_token(request.session.get['refresh_token'])
-
-        if response == None:
-            return RedirectResponse(url="/login")
-        else:
-            request.session.get['access_token'] = response.get('access_token')
-            request.session.get['refresh_token'] = response.get('refresh_token')
-            request.session.get['expires_at'] = datetime.now().timestamp() + response.get('expires_in')
+    access_token = request.headers.get('Authorization')
 
     headers = {
         'Authorization': f"Bearer {access_token}"
@@ -121,7 +107,7 @@ async def recently_played(request: Request):
 
     recently_played_tracks = r.json()
 
-    await save_to_db(recently_played_tracks, getUser(request.session.get('access_token')))
+    await save_to_db(recently_played_tracks, getUser(access_token))
     return JSONResponse(recently_played_tracks)
     
     

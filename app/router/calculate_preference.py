@@ -16,13 +16,7 @@ async def calculate_preference(user_id: str, request: Request):
     collection = db['track_history']
 
     # Get user data
-    access_token = request.session.get('access_token')
-    if not access_token:
-        return JSONResponse(
-            status_code=401,
-            content={"message": "Authentication required. Access token missing."}
-        )
-    
+    access_token = request.headers.get('Authorization')
     user_data = getUser(access_token)
 
     if user_data is None:

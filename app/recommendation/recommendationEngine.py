@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
+from sklearn.preprocessing import StandardScaler
 async def recommendation_processor(InputVector: dict):
     # Data setup
     BASE_DIR = Path(__file__).resolve().parent

@@ -1,9 +1,8 @@
 from fastapi import APIRouter
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from starlette.requests import Request
-from datetime import datetime
 from app.utility.client import clientInit
-from app.router.authentication import getUser, refresh_access_token
+from app.router.authentication import getUser
 from app.model.songFeatures import generate_random_feature
 from app.config import settings 
 

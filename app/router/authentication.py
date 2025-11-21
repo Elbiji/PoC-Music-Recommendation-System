@@ -2,10 +2,12 @@ from fastapi import status, APIRouter
 from fastapi.responses import RedirectResponse, JSONResponse
 from starlette.requests import Request
 from app.config import settings 
+from requests.exceptions import RequestException
+from datetime import datetime, timedelta
+from app.utility.client import clientInit
 import urllib.parse
 import requests
-from requests.exceptions import RequestException
-from datetime import datetime
+import jwt
 
 router = APIRouter(tags=["authentication"])
 
@@ -62,6 +64,7 @@ def refresh_access_token(refresh_token: str):
     except RequestException as e:
         print(f"Network error while fetching user data: {e}")
         return None
+        
 
 @router.get("/login")
 async def login():
@@ -97,17 +100,69 @@ async def callback(code: str | None = None, error: str | None = None):
         if response.status_code != 200:
             return JSONResponse({"error": "Token exchange failed"}, status_code=response.status_code)
         
+        # Setting up important credential datas
         token_info = response.json()
+        access_token = token_info.get('access_token')
+        refresh_token = token_info.get('refresh_token')
+        expires_in = token_info.get('expires_in')
+        user_data = getUser(access_token)
+        user_id = user_data.get('id')
 
-        # request.session['access_token'] = token_info.get('access_token')
-        # request.session['refresh_token'] = token_info.get('refresh_token')
-        # request.session['expires_at'] = datetime.now().timestamp() + token_info.get('expires_in')
+        # Save user Spotify's credential and tokens to db
+        client = clientInit()
+        db = client.spotify
 
-        # print(request.session['access_token'])
+        # Query filter
+        query_filter = {"user_id": user_id}
+
+        if expires_in:
+            # Use datetime.utcnow() for consistency
+            access_token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+        else:
+            access_token_expires_at = None
+
+        update_action = {
+            "$set": {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "access_token_expires_at": access_token_expires_at
+            },
+            "$setOnInsert": {
+                "user_id": user_id, 
+                "display_name": user_data.get('display_name'),
+                "explicit_content": user_data.get('explicit_content'),
+                "followers": user_data.get('followers'),
+                "type": user_data.get('type'),
+                "product": user_data.get('product'),
+                "email": user_data.get('email'),
+                "created_at": datetime.now(),
+            }
+        }
+
+        result = await db.users.update_one(
+            query_filter,
+            update_action,
+            upsert=True
+        )
+
+        if not result.acknowledged:
+            return JSONResponse(
+                status_code=500,
+                content={"message": "Mongodb internal server error"}
+        )
+
+        # JWT
+        payload = {
+            'user_id': user_id,
+            'exp': datetime.utcnow() + timedelta(hours=1)
+        }
+
+        jwt_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
         return JSONResponse(
             content={
                 "message": "Token exchange succesfull",
+                "auth_token": jwt_token,
                 "access_token": token_info.get('access_token'),
                 "refresh_token": token_info.get('refresh_token'),
                 "expires_in": token_info.get('expires_in'),

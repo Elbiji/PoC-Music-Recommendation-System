@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 from app.utility.client import clientInit
@@ -95,7 +95,7 @@ async def save_to_db(data, user):
     await db.track_history.insert_many(songs_df.to_dict('records')) 
 
 @router.get('/recently-played')
-async def recently_played(request: Request, user_id: Annotated[str, Depends(get_current_user_id)]) -> JSONResponse:
+async def recently_played(user_id: Annotated[str, Depends(get_current_user_id)]) -> JSONResponse:
     # Get access token from database
     client = clientInit()
     db = client.spotify
@@ -108,8 +108,11 @@ async def recently_played(request: Request, user_id: Annotated[str, Depends(get_
     document = await collection.find_one(query_filter)   
     current_time_utc = datetime.utcnow()
 
+    # Check if the Spotify's access_token is expired or not
     if (current_time_utc > document['access_token_expires_at']):
+        # Updates database
         await refresh_access_token(user_id)
+        # Retrieve newly updated database
         document = await collection.find_one(query_filter)  
 
     headers = {
@@ -124,6 +127,9 @@ async def recently_played(request: Request, user_id: Annotated[str, Depends(get_
     recently_played_tracks = r.json()
 
     await save_to_db(recently_played_tracks, user_id)
-    return JSONResponse(recently_played_tracks)
+    return JSONResponse(
+        content=recently_played,
+        status_code=status.HTTP_200_OK
+    )
     
     

@@ -1,34 +1,21 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 from app.utility.client import clientInit
-from app.router.authentication import getUser
+from app.router.authentication import getUser, refresh_access_token
 from app.recommendation.recommendationEngine import user_preference
+from app.dependency import get_current_user_id
+from datetime import datetime
+from typing import Annotated
 
 router = APIRouter(tags=["preference_calculator"])
 
-@router.get("/calculate-preference/{user_id}")
-async def calculate_preference(user_id: str, request: Request):
-    # Client initialization
+@router.get("/calculate-preference")
+async def calculate_preference(user_id: Annotated[str, Depends(get_current_user_id)]):
+    # Get tracks from database
     client = clientInit()
     db = client.spotify
     collection = db['track_history']
-
-    # Get user data
-    access_token = request.headers.get('Authorization')
-    user_data = getUser(access_token)
-
-    if user_data is None:
-        return JSONResponse(
-            status_code=403,
-            content={"message": "User validation failed, Check token validity or network,"}
-        )
-    
-    if user_data.get('id') != user_id:
-        return JSONResponse(
-            status_code=403,
-            content={"message": "Forbidden access. Token ID does not match"}
-        )
 
     # Query filter
     query_filter = {"user_id": user_id}
@@ -46,11 +33,11 @@ async def calculate_preference(user_id: str, request: Request):
         }
     }
     
-    # Execute the update with upsert=True
+    # Execute the update 
     result = await db.users.update_one(
         query_filter, 
         update_action, 
-        upsert=True  
+        upsert=False  
     )
 
     if not result.acknowledged:

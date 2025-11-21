@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import StandardScaler
+
 async def recommendation_processor(InputVector: dict):
     # Data setup
     BASE_DIR = Path(__file__).resolve().parent
@@ -50,7 +51,7 @@ async def recommendation_processor(InputVector: dict):
     # Sort by similarity score
     df_sorted = df_songs.sort_values(by='similarity', ascending=False)
 
-    # Get 5 songs that has the most similiar
+    # Get 5 songs that has the most similiar result
     top_5_results = df_sorted.head()
 
     return top_5_results

@@ -1,0 +1,9 @@
+.git
+.venv
+.env
+__pycahce__
+
+*.pyc
+*.pyo
+
+.python-version

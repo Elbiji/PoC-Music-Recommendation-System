@@ -127,7 +127,7 @@ async def recently_played(user_id: Annotated[str, Depends(get_current_user_id)])
 
     await save_to_db(recently_played_tracks, user_id)
     return JSONResponse(
-        content=recently_played,
+        content=recently_played_tracks,
         status_code=status.HTTP_200_OK
     )
     

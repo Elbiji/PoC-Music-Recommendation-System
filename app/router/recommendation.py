@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from app.utility.client import clientInit
 from app.router.authentication import refresh_access_token
-from app.recommendation.recommendationEngine import recommender_instance
+from app.recommendation.recommendationEngine import recommender
 from app.dependency import get_current_user_id
 from typing import Annotated
 from datetime import datetime

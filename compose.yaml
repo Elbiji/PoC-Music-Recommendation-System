@@ -1,0 +1,8 @@
+name: fastapi_music_poc_recommendation_system
+services:
+  webservice:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env
